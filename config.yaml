@@ -1,0 +1,67 @@
+# Configuration file for Multi-Provider AI Chatbot
+
+# AI Provider settings
+ai_provider:
+  provider: "gemini"        # Options: gemini, openai, claude
+  model: "gemini-1.5-flash" # Model name (varies by provider)
+  temperature: 0.7          # Creativity level (0.0 - 1.0)
+  max_tokens: 1000         # Maximum response length
+
+# Provider-specific configurations
+providers:
+  gemini:
+    default_model: "gemini-1.5-flash"
+    models:
+      - "gemini-1.5-flash"
+      - "gemini-1.5-pro"
+      - "gemini-2.0-flash-exp"
+  
+  openai:
+    default_model: "gpt-3.5-turbo"
+    models:
+      - "gpt-3.5-turbo"
+      - "gpt-4"
+      - "gpt-4-turbo"
+      - "gpt-4o"
+  
+  claude:
+    default_model: "claude-3-haiku-20240307"
+    models:
+      - "claude-3-haiku-20240307"
+      - "claude-3-sonnet-20240229"
+      - "claude-3-opus-20240229"
+      - "claude-3-5-sonnet-20241022"
+
+# Interface settings
+interface:
+  theme: "default"         # Options: default, dark, light
+  show_timestamp: true     # Show message timestamps
+  show_token_count: false  # Display token usage
+  auto_save: true         # Auto-save conversations
+  max_history: 20         # Maximum messages to keep in memory
+
+# Features
+features:
+  streaming: false        # Stream responses in real-time
+  voice_input: false     # Enable voice input (requires additional setup)
+  voice_output: false    # Enable voice output
+  web_search: false      # Enable web search capabilities
+  image_analysis: false  # Enable image understanding
+  export_format: "json"  # Options: json, markdown, txt
+
+# Personality settings
+personality:
+  default: "helpful"     # Default personality
+  available:
+    - "helpful"         # Friendly and helpful assistant
+    - "creative"        # Creative and imaginative
+    - "professional"    # Business and professional tone
+    - "teacher"         # Educational and explanatory
+    - "coder"          # Programming focused
+
+# Advanced settings
+advanced:
+  conversation_memory: true    # Remember conversation context
+  auto_clear_after: 100       # Auto-clear history after N messages
+  debug_mode: false           # Show debug information
+  log_conversations: false    # Log all conversations to file
