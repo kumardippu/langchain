@@ -55,7 +55,6 @@ pip install langchain langchain-google-genai python-dotenv
 1. Visit [Google AI Studio](https://aistudio.google.com/)
 2. Sign in with your Google account
 3. Click "Get API key" or "Create API key"
-4. Copy the generated API key (starts with `AIzaSy...`)
 
 ### Method 2: Set Up Environment Variables
 
