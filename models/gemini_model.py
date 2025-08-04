@@ -2,11 +2,13 @@
 Google Gemini AI Model Implementation
 """
 
-import os
 import getpass
-from typing import List, Dict, Any
+import os
+from typing import Any, Dict, List
+
+from langchain.schema import AIMessage, BaseMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.schema import BaseMessage, AIMessage
+
 from .base_model import BaseAIModel
 
 
@@ -38,7 +40,8 @@ class GeminiModel(BaseAIModel):
             response = self.model.invoke(messages)
             return response
         except Exception as e:
-            return AIMessage(content=f"Error: {str(e)}")
+            # Re-raise the exception so it can be handled by the automatic switching logic
+            raise e
 
     def stream(self, messages: List[BaseMessage]) -> Any:
         """Stream response from Gemini"""

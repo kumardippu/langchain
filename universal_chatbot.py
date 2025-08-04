@@ -6,27 +6,27 @@ Supports multiple AI providers: Gemini, OpenAI, Claude
 Easy to extend with new providers
 """
 
-import os
 import json
-import yaml
+import os
+import time
 from datetime import datetime
-from typing import Optional, Dict, Any
-from dotenv import load_dotenv
+from typing import Any, Dict, Optional
 
+import yaml
+from dotenv import load_dotenv
+from langchain.schema import AIMessage, HumanMessage
+from rich import box
 # Rich imports for beautiful console output
 from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-from rich.table import Table
 from rich.markdown import Markdown
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.prompt import Prompt, Confirm, IntPrompt
-from rich import box
-import time
+from rich.prompt import Confirm, IntPrompt, Prompt
+from rich.table import Table
+from rich.text import Text
 
 # Import our model factory
-from models import ModelFactory, BaseAIModel
-from langchain.schema import HumanMessage, AIMessage
+from models import BaseAIModel, ModelFactory
 
 # Load environment variables
 load_dotenv()
@@ -210,6 +210,19 @@ class UniversalChatBot:
 
         self.console.print("\n")
         self.console.print(help_table)
+        
+        # Add note about automatic switching
+        auto_switch_note = Panel(
+            "[cyan]🔄 Automatic Provider Switching[/cyan]\n\n"
+            "When quota limits are reached, the chatbot will automatically try to switch to "
+            "alternative providers (OpenAI → Claude → Gemini) to continue your conversation "
+            "without interruption. Your conversation history is preserved during switches.",
+            title="[bold green]✨ Smart Feature[/bold green]",
+            box=box.ROUNDED,
+            border_style="green"
+        )
+        self.console.print("\n")
+        self.console.print(auto_switch_note)
 
     def clear_history(self) -> None:
         """Clear conversation history"""
@@ -447,11 +460,122 @@ class UniversalChatBot:
             ):
                 self.conversation_history.clear()
                 self.message_count = 0
-
+                
             self.console.print(f"[green]✅ Switched to {selected_provider}[/green]")
 
         except (ValueError, KeyboardInterrupt):
             self.console.print("[yellow]❌ Provider switch cancelled[/yellow]")
+
+    def auto_switch_provider(self, exclude_provider: str = None) -> bool:
+        """
+        Automatically switch to the next available provider when quota limits are hit
+        
+        Args:
+            exclude_provider: Provider to exclude from switching (usually the one that failed)
+            
+        Returns:
+            bool: True if successfully switched, False if no alternatives available
+        """
+        current_provider = self.config.get("ai_provider", {}).get("provider", "").lower()
+        
+        # Get all available providers except the current/failed one
+        available_providers = [
+            p for p in ModelFactory.get_available_providers()
+            if ModelFactory.is_provider_available(p) 
+            and p.lower() != current_provider
+            and (exclude_provider is None or p.lower() != exclude_provider.lower())
+        ]
+        
+        if not available_providers:
+            return False
+            
+        # Try providers in order: openai, claude, gemini
+        provider_priority = ["openai", "claude", "gemini"]
+        prioritized_providers = []
+        
+        # Add providers based on priority
+        for priority_provider in provider_priority:
+            if priority_provider in available_providers:
+                prioritized_providers.append(priority_provider)
+                
+        # Add any remaining providers
+        for provider in available_providers:
+            if provider not in prioritized_providers:
+                prioritized_providers.append(provider)
+        
+        # Try to switch to the first available provider
+        for provider in prioritized_providers:
+            try:
+                old_provider = current_provider
+                
+                # Update configuration 
+                self.config["ai_provider"]["provider"] = provider
+                # Use default model for the new provider
+                default_models = {
+                    "gemini": "gemini-1.5-flash",
+                    "openai": "gpt-3.5-turbo", 
+                    "claude": "claude-3-haiku-20240307"
+                }
+                if provider in default_models:
+                    self.config["ai_provider"]["model"] = default_models[provider]
+                
+                # Reinitialize the model
+                self.setup_ai_model()
+                
+                # Verify the switch was successful (model is working)
+                if self.current_model is None:
+                    raise RuntimeError(f"Failed to initialize {provider} model")
+                
+                # Notify user about the switch
+                switch_panel = Panel(
+                    f"[yellow]⚠️ Quota limit reached for {old_provider.title()}[/yellow]\n\n"
+                    f"[green]✅ Automatically switched to {provider.title()}[/green]\n\n"
+                    f"[cyan]💬 Your conversation history has been preserved[/cyan]",
+                    title="[bold yellow]🔄 Provider Auto-Switch[/bold yellow]",
+                    box=box.ROUNDED,
+                    border_style="yellow"
+                )
+                self.console.print("\n")
+                self.console.print(switch_panel)
+                
+                return True
+                
+            except Exception as e:
+                # If this provider also fails, try the next one
+                self.console.print(f"[dim]Failed to switch to {provider}: {str(e)[:80]}...[/dim]")
+                # Reset to previous provider configuration if this one failed
+                self.config["ai_provider"]["provider"] = current_provider
+                continue
+                
+        return False
+
+    def is_quota_error(self, error_message: str) -> bool:
+        """
+        Check if an error is a quota/rate limit error
+        
+        Args:
+            error_message: The error message to check
+            
+        Returns:
+            bool: True if it's a quota error
+        """
+        error_lower = error_message.lower()
+        quota_indicators = [
+            "quota",
+            "rate limit", 
+            "429",
+            "exceeded your current quota",
+            "requests per day",
+            "free tier",
+            "billing details",
+            "resourceexhausted",
+            "quota_metric",
+            "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "generaterequest",
+            "quota_value"
+        ]
+        
+        return any(indicator in error_lower for indicator in quota_indicators)
 
     def show_available_models(self) -> None:
         """Show all available models for current provider"""
@@ -529,9 +653,36 @@ class UniversalChatBot:
                     user_message = HumanMessage(content=user_input)
                     self.conversation_history.append(user_message)
 
-                    # Get AI response
-                    response = self.current_model.invoke(self.conversation_history)
-                    self.conversation_history.append(response)
+                    # Get AI response with automatic provider switching on quota errors
+                    response = None
+                    max_retries = 3  # Maximum number of provider switches to attempt
+                    retry_count = 0
+                    
+                    while response is None and retry_count < max_retries:
+                        try:
+                            response = self.current_model.invoke(self.conversation_history)
+                            self.conversation_history.append(response)
+                            break
+                        except Exception as invoke_error:
+                            # Check if this is a quota error
+                            if self.is_quota_error(str(invoke_error)) and retry_count < max_retries - 1:
+                                current_provider = self.config.get("ai_provider", {}).get("provider", "")
+                                
+                                # Try to automatically switch to another provider
+                                if self.auto_switch_provider(exclude_provider=current_provider):
+                                    retry_count += 1
+                                    # Remove the user message temporarily so we can retry
+                                    if self.conversation_history and isinstance(self.conversation_history[-1], HumanMessage):
+                                        temp_user_message = self.conversation_history.pop()
+                                        # Re-add it for the retry
+                                        self.conversation_history.append(temp_user_message)
+                                    continue
+                                else:
+                                    # No alternative providers available, raise the original error
+                                    raise invoke_error
+                            else:
+                                # Not a quota error or max retries reached, raise the original error
+                                raise invoke_error
 
                 # Display response
                 response_panel = Panel(
@@ -567,11 +718,29 @@ class UniversalChatBot:
                 self.console.print("\n\n[yellow]👋 Chat interrupted. Goodbye![/yellow]")
                 break
             except Exception as e:
+                # Check if it's a quota error and provide helpful guidance
+                if self.is_quota_error(str(e)):
+                    error_content = (
+                        f"[red]❌ Quota Limit Reached: {str(e)}[/red]\n\n"
+                        f"[yellow]All available providers have reached their quota limits.[/yellow]\n\n"
+                        f"[cyan]💡 Suggestions:[/cyan]\n"
+                        f"• Wait for quota reset (usually 24 hours)\n"
+                        f"• Upgrade to paid plans for higher limits\n"
+                        f"• Use /providers to check provider status\n"
+                        f"• Use /switch to manually try a different provider"
+                    )
+                    title = "[bold yellow]🚫 Quota Exceeded[/bold yellow]"
+                    border_style = "yellow"
+                else:
+                    error_content = f"[red]❌ Error: {str(e)}[/red]\n\n[yellow]Please try again or type /quit to exit[/yellow]"
+                    title = "[bold red]Error[/bold red]"
+                    border_style = "red"
+                
                 error_panel = Panel(
-                    f"[red]❌ Error: {str(e)}[/red]\n\n[yellow]Please try again or type /quit to exit[/yellow]",
-                    title="[bold red]Error[/bold red]",
+                    error_content,
+                    title=title,
                     box=box.ROUNDED,
-                    border_style="red",
+                    border_style=border_style,
                 )
                 self.console.print("\n")
                 self.console.print(error_panel)
