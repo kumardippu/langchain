@@ -4,6 +4,12 @@
 
 A comprehensive collection of AI chatbots supporting multiple providers (Google Gemini, OpenAI, Claude) with beautiful interfaces and professional architecture.
 
+## 🖼️ Demo Preview
+
+Here's what your chatbot will look like when it's running:
+
+![Chatbot Demo](https://github.com/kumardippu/langchain/blob/main/demo.png)
+
 ## ✨ What You Get
 
 ### 🎯 **Three Different Chatbot Versions**
