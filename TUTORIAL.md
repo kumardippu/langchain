@@ -15,6 +15,12 @@ By the end of this tutorial, you'll have:
 
 **Time needed:** 15-20 minutes
 
+## 🖼️ Demo Preview
+
+Here's what your chatbot will look like when it's running:
+
+![Chatbot Demo](https://github.com/kumardippu/langchain/blob/main/demo.png)
+
 ---
 
 ## 📋 Before We Start
