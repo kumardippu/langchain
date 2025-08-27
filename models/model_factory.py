@@ -4,11 +4,13 @@ Author: Dippu Kumar
 Implements the Factory Pattern for easy model switching
 """
 
-from typing import Dict, Type, List, Optional
+from typing import Dict, List, Optional, Type
+
 from .base_model import BaseAIModel
-from .gemini_model import GeminiModel
-from .openai_model import OpenAIModel
 from .claude_model import ClaudeModel
+from .gemini_model import GeminiModel
+from .groq_model import GroqModel
+from .openai_model import OpenAIModel
 
 
 class ModelFactory:
@@ -19,6 +21,7 @@ class ModelFactory:
         "gemini": GeminiModel,
         "openai": OpenAIModel,
         "claude": ClaudeModel,
+        "groq": GroqModel,
     }
 
     # Default models for each provider
@@ -26,6 +29,7 @@ class ModelFactory:
         "gemini": "gemini-1.5-flash",
         "openai": "gpt-3.5-turbo",
         "claude": "claude-3-haiku-20240307",
+        "groq": "llama3-8b-8192",
     }
 
     @classmethod
@@ -36,7 +40,7 @@ class ModelFactory:
         Create an AI model instance
 
         Args:
-            provider: The AI provider ('gemini', 'openai', 'claude')
+            provider: The AI provider ('gemini', 'openai', 'claude', 'groq')
             model_name: Specific model name (optional, uses default if not provided)
             **kwargs: Additional configuration parameters
 
@@ -171,3 +175,8 @@ def create_claude_model(
 ) -> ClaudeModel:
     """Create a Claude model instance"""
     return ModelFactory.create_model("claude", model_name, **kwargs)
+
+
+def create_groq_model(model_name: str = "llama3-8b-8192", **kwargs) -> GroqModel:
+    """Create a Groq model instance"""
+    return ModelFactory.create_model("groq", model_name, **kwargs)

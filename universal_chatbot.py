@@ -214,9 +214,11 @@ class UniversalChatBot:
         # Add note about automatic switching
         auto_switch_note = Panel(
             "[cyan]🔄 Automatic Provider Switching[/cyan]\n\n"
-            "When quota limits are reached, the chatbot will automatically try to switch to "
-            "alternative providers (OpenAI → Claude → Gemini) to continue your conversation "
-            "without interruption. Your conversation history is preserved during switches.",
+            "When quota limits are reached, the chatbot will automatically switch to "
+            "alternative providers to continue your conversation without interruption:\n\n"
+            "• [yellow]Gemini exhausted[/yellow] → [green]Groq (Free & Fast)[/green]\n"
+            "• [yellow]Other providers[/yellow] → [green]OpenAI → Groq → Claude → Gemini[/green]\n\n"
+            "[dim]Your conversation history is always preserved during switches.[/dim]",
             title="[bold green]✨ Smart Feature[/bold green]",
             box=box.ROUNDED,
             border_style="green"
@@ -466,7 +468,7 @@ class UniversalChatBot:
         except (ValueError, KeyboardInterrupt):
             self.console.print("[yellow]❌ Provider switch cancelled[/yellow]")
 
-    def auto_switch_provider(self, exclude_provider: str = None) -> bool:
+    def auto_switch_provider(self, exclude_provider: Optional[str] = None) -> bool:
         """
         Automatically switch to the next available provider when quota limits are hit
         
@@ -489,8 +491,14 @@ class UniversalChatBot:
         if not available_providers:
             return False
             
-        # Try providers in order: openai, claude, gemini
-        provider_priority = ["openai", "claude", "gemini"]
+        # Special priority for Gemini -> Groq switching
+        if current_provider == "gemini" or (exclude_provider and exclude_provider.lower() == "gemini"):
+            # When Gemini fails, prioritize Groq first
+            provider_priority = ["groq", "openai", "claude"]
+        else:
+            # Default priority for other providers
+            provider_priority = ["openai", "groq", "claude", "gemini"]
+            
         prioritized_providers = []
         
         # Add providers based on priority
@@ -514,7 +522,8 @@ class UniversalChatBot:
                 default_models = {
                     "gemini": "gemini-1.5-flash",
                     "openai": "gpt-3.5-turbo", 
-                    "claude": "claude-3-haiku-20240307"
+                    "claude": "claude-3-haiku-20240307",
+                    "groq": "llama3-8b-8192"
                 }
                 if provider in default_models:
                     self.config["ai_provider"]["model"] = default_models[provider]
@@ -527,10 +536,22 @@ class UniversalChatBot:
                     raise RuntimeError(f"Failed to initialize {provider} model")
                 
                 # Notify user about the switch
+                switch_message = f"[yellow]⚠️ Quota limit reached for {old_provider.title()}[/yellow]\n\n"
+                
+                if old_provider == "gemini" and provider == "groq":
+                    switch_message += (
+                        f"[green]✅ Automatically switched to {provider.title()} (Free & Fast)[/green]\n\n"
+                        f"[cyan]🚀 Groq offers excellent performance with generous free tier limits[/cyan]\n\n"
+                        f"[dim]💬 Your conversation history has been preserved[/dim]"
+                    )
+                else:
+                    switch_message += (
+                        f"[green]✅ Automatically switched to {provider.title()}[/green]\n\n"
+                        f"[cyan]💬 Your conversation history has been preserved[/cyan]"
+                    )
+                
                 switch_panel = Panel(
-                    f"[yellow]⚠️ Quota limit reached for {old_provider.title()}[/yellow]\n\n"
-                    f"[green]✅ Automatically switched to {provider.title()}[/green]\n\n"
-                    f"[cyan]💬 Your conversation history has been preserved[/cyan]",
+                    switch_message,
                     title="[bold yellow]🔄 Provider Auto-Switch[/bold yellow]",
                     box=box.ROUNDED,
                     border_style="yellow"
@@ -561,6 +582,7 @@ class UniversalChatBot:
         """
         error_lower = error_message.lower()
         quota_indicators = [
+            # General quota indicators
             "quota",
             "rate limit", 
             "429",
@@ -570,9 +592,26 @@ class UniversalChatBot:
             "billing details",
             "resourceexhausted",
             "quota_metric",
+            "quota_value",
+            # Gemini-specific quota indicators
             "generativelanguage.googleapis.com/generate_content_free_tier_requests",
             "generaterequest",
-            "quota_value"
+            "quota exceeded",
+            "quota limit reached",
+            "daily quota",
+            "monthly quota",
+            "free quota",
+            "api quota",
+            # OpenAI-specific quota indicators
+            "openai quota",
+            "tokens per minute",
+            "requests per minute",
+            # Claude-specific quota indicators
+            "anthropic quota",
+            "claude quota",
+            # Groq-specific quota indicators  
+            "groq quota",
+            "rate_limit_exceeded"
         ]
         
         return any(indicator in error_lower for indicator in quota_indicators)
@@ -685,16 +724,19 @@ class UniversalChatBot:
                                 raise invoke_error
 
                 # Display response
-                response_panel = Panel(
-                    Markdown(response.content),
-                    title=f"[bold blue]🤖 {self.current_model.provider_name}[/bold blue]",
-                    title_align="left",
-                    box=box.ROUNDED,
-                    border_style="blue",
-                )
+                if response and hasattr(response, 'content'):
+                    response_panel = Panel(
+                        Markdown(response.content),
+                        title=f"[bold blue]🤖 {self.current_model.provider_name}[/bold blue]",
+                        title_align="left",
+                        box=box.ROUNDED,
+                        border_style="blue",
+                    )
 
-                self.console.print("\n")
-                self.console.print(response_panel)
+                    self.console.print("\n")
+                    self.console.print(response_panel)
+                else:
+                    self.console.print("[red]❌ No response received from AI model[/red]")
 
                 # Show timestamp if enabled
                 if self.config.get("interface", {}).get("show_timestamp", True):

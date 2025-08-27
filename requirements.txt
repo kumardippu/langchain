@@ -10,6 +10,9 @@ rich>=13.0.0
 # Google Gemini (default)
 langchain-google-genai>=2.1.0
 
+# Groq (fast & free tier) 
+# langchain-groq>=0.1.0
+
 # OpenAI (optional)
 # langchain-openai>=0.3.0
 

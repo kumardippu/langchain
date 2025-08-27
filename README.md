@@ -19,6 +19,7 @@ Here's what your chatbot will look like when it's running:
 
 ### 🤖 **Multiple AI Providers Support**
 - **Google Gemini** (Default) - Fast and free
+- **Groq** - Ultrafast inference with generous free tier
 - **OpenAI** (GPT-3.5, GPT-4) - Industry standard
 - **Claude** (Anthropic) - Advanced reasoning
 
@@ -35,6 +36,7 @@ Here's what your chatbot will look like when it's running:
 - ✅ Factory Pattern for easy model switching
 - ✅ Modular design (add new providers easily)
 - ✅ Configuration-driven setup
+- ✅ **🧠 Intelligent Quota Management** with automatic fallbacks
 - ✅ Clean separation of concerns
 - ✅ Comprehensive documentation
 
@@ -353,7 +355,60 @@ Select provider: 2
 
 ---
 
+## 🔄 **Smart Auto-Switching Feature**
+
+### **Never Get Stuck by Quota Limits!**
+
+The Universal Chatbot includes **intelligent quota management** that automatically switches AI providers when limits are reached:
+
+#### **🎯 Smart Priority System**
+- **Gemini quota exhausted** → **Groq** (Free & Ultrafast)
+- **Other providers exhausted** → OpenAI → Groq → Claude → Gemini
+
+#### **✨ Key Benefits**
+- ✅ **Zero interruption** to your conversations
+- ✅ **Conversation history preserved** across switches
+- ✅ **Automatic fallback chain** if multiple providers fail
+- ✅ **Clear notifications** about switches and reasons
+- ✅ **Up to 3 retry attempts** to find working providers
+
+#### **🔍 Smart Detection**
+The system detects various quota error patterns:
+- `"quota exceeded"`, `"rate limit"`, `"daily quota"`
+- Gemini-specific: `"generativelanguage.googleapis.com/..."`
+- OpenAI-specific: `"exceeded your current quota"`
+- Provider-specific error codes and messages
+
+#### **📱 User Experience**
+When Gemini quota is exhausted, you'll see:
+```
+⚠️ Quota limit reached for Gemini
+
+✅ Automatically switched to Groq (Free & Fast)
+
+🚀 Groq offers excellent performance with generous free tier limits
+
+💬 Your conversation history has been preserved
+```
+
+---
+
 ## 🛠️ **Adding More AI Providers**
+
+### **Groq (Ultrafast & Free)**
+```bash
+# Install Groq package
+pip install langchain-groq
+
+# Get free API key from console.groq.com
+# Add to .env file
+echo "GROQ_API_KEY=your_groq_key" >> .env
+
+# Update config.yaml
+ai_provider:
+  provider: "groq"
+  model: "llama3-8b-8192"
+```
 
 ### **OpenAI (ChatGPT)**
 ```bash
@@ -399,6 +454,7 @@ ai_provider:
 │   └── models/                 # AI provider implementations
 │       ├── base_model.py       # Abstract base class
 │       ├── gemini_model.py     # Google Gemini
+│       ├── groq_model.py       # Groq (Ultrafast)
 │       ├── openai_model.py     # OpenAI ChatGPT
 │       ├── claude_model.py     # Anthropic Claude
 │       └── model_factory.py    # Factory pattern

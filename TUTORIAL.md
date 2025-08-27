@@ -9,7 +9,8 @@ Welcome! This tutorial will guide you step-by-step to set up and use your AI cha
 By the end of this tutorial, you'll have:
 - ✅ A working AI chatbot on your computer
 - ✅ Beautiful chat interface with colors
-- ✅ Ability to switch between different AI models
+- ✅ Ability to switch between different AI models (Gemini, Groq, OpenAI, Claude)
+- ✅ **Smart auto-switching** when quota limits are reached
 - ✅ Saved conversation history
 - ✅ Understanding of how it all works
 
@@ -317,7 +318,8 @@ Professional grade:
 ```bash
 python3 universal_chatbot.py
 ```
-- Switch between AI providers (Gemini, OpenAI, Claude)
+- Switch between AI providers (Gemini, Groq, OpenAI, Claude)
+- **Smart auto-switching** when quota limits are reached
 - Advanced configuration
 - Production ready
 
@@ -343,7 +345,24 @@ interface:
 
 ### **Adding More AI Providers**
 
-To use OpenAI (ChatGPT):
+**For Groq (Ultrafast & Free):**
+```bash
+pip install langchain-groq
+```
+
+Add to your `.env` file:
+```
+GROQ_API_KEY=your_groq_key_here
+```
+
+Change `config.yaml`:
+```yaml
+ai_provider:
+  provider: "groq"
+  model: "llama3-8b-8192"
+```
+
+**For OpenAI (ChatGPT):**
 ```bash
 pip install langchain-openai
 ```
@@ -359,6 +378,18 @@ ai_provider:
   provider: "openai"
   model: "gpt-3.5-turbo"
 ```
+
+### **🔄 Smart Auto-Switching Feature**
+
+The Universal Chatbot automatically switches providers when quota limits are reached:
+
+**What happens:** If you're using Gemini and hit the daily quota, the chatbot automatically switches to Groq (which has a generous free tier) so you can continue chatting without interruption.
+
+**Benefits:**
+- ✅ Never get stuck by quota limits
+- ✅ Conversation history preserved
+- ✅ Seamless transition between providers
+- ✅ Clear notifications about switches
 
 ---
 

@@ -28,15 +28,16 @@ if GROQ_AVAILABLE:
     )
 
     # Initialize the model (Groq has several free models)
+    # Updated models as of 2024 - mixtral-8x7b-32768 was decommissioned
     model = ChatGroq(
-        model="mixtral-8x7b-32768",  # Fast and capable free model
+        model="llama3-8b-8192",  # Meta Llama 3 8B - Fast and capable free model
         temperature=0.7
     )
 
     # Interactive chat
     print("\n" + "=" * 50)
     print("🚀 Groq AI Chat - Super Fast & Free!")
-    print("Model: Mixtral-8x7B")
+    print("Model: Llama 3 8B")
     print("=" * 50)
     
     while True:

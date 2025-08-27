@@ -19,7 +19,6 @@ print(
     else "No API key found"
 )
 
-
 # Initialize the model
 model = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
 
