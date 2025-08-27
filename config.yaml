@@ -9,13 +9,13 @@ ai_provider:
 
 # Provider-specific configurations
 providers:
-    gemini:
+  gemini:
     default_model: "gemini-1.5-flash"
     models:
       - "gemini-1.5-flash"
       - "gemini-1.5-pro"
       - "gemini-2.0-flash-exp"
-  
+
   groq:
     default_model: "llama3-8b-8192"
     models:
@@ -23,7 +23,7 @@ providers:
       - "llama3-70b-8192"
       - "gemma-7b-it"
       - "llama3-groq-70b-8192-tool-use-preview"
-  
+
   openai:
     default_model: "gpt-3.5-turbo"
     models:
