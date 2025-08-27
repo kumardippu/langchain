@@ -28,6 +28,7 @@ Here's what your chatbot will look like when it's running:
 - ✅ Conversation history and memory
 - ✅ Interactive commands (`/help`, `/switch`, `/save`)
 - ✅ Real-time provider switching
+- ✅ **🔄 Smart Auto-Switching** (Gemini → Groq when quota exhausted)
 - ✅ Auto-save conversations
 - ✅ Progress indicators and spinners
 - ✅ Error handling with helpful messages
@@ -390,6 +391,26 @@ When Gemini quota is exhausted, you'll see:
 
 💬 Your conversation history has been preserved
 ```
+
+#### **🔄 How It Works - Flow Diagram**
+
+![Universal Chatbot Flow Diagram](flow_diagram.png)
+
+**Flow Explanation:**
+1. **🚀 Startup**: Load configuration and initialize AI model
+2. **💬 User Input**: Wait for messages or commands  
+3. **🤖 AI Processing**: Send message to current AI provider
+4. **🔍 Error Detection**: Check if quota/rate limit error occurred
+5. **🔄 Auto-Switch**: If quota error, automatically switch to next provider
+6. **✅ Response**: Display AI response with beautiful formatting
+7. **💾 Auto-Save**: Automatically save conversation every 10 messages
+
+**Key Features Shown:**
+- ✅ **Intelligent Decision Making**: Automatic quota error detection
+- ✅ **Smart Provider Switching**: Gemini → Groq priority system
+- ✅ **Conversation Continuity**: History preserved across switches
+- ✅ **Robust Error Handling**: Multiple fallback options
+- ✅ **User-Friendly Interface**: Commands and auto-save features
 
 ---
 
